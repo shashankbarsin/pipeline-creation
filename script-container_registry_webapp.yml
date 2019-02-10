@@ -1,0 +1,44 @@
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  # container registry service connection established during pipeline creation - Docker Hub/ACR/...
+  containerRegistryServiceConnection: '{{ containerRegistryServiceConnection }}'
+  # name of the container registry specified for above service connection
+  containerRegistry: '{{ containerRegistry }}'
+  imageName: '$(Build.Repository.Name)'
+  imageTag: '$(Build.BuildId)'
+
+  # Based on PORT in Dockerfile. Otherwise default value set
+  containerPort: '{{ containerPort }}'
+
+  # Details of the deployment target
+  ARMServiceConnection: '{{ ARMServiceConnection }}'
+  webAppName: '{{ webAppName }}'
+
+jobs:
+- job: Build
+  displayName: Build 
+  steps:
+  - use: docker
+    auth:
+    - $(containerRegistryServiceConnection)
+  - script: |
+      docker build -t $(containerRegistry)/$(imageName):$(imageTag)
+      docker push $(containerRegistry)/$(imageName):$(imageTag)
+    
+- deployment: Deploy to Web App for Containers
+  displayName: Deploy
+  dependsOn: Build
+  condition: succeeded()
+  steps:
+  - task: AzureWebAppContainer@1
+    displayName: Deploy to Web App for Containers
+    inputs:
+      azureSubscription: $(ARMServiceConnection)
+      appName: $(webAppName)
+      imageName: $(imageName):$(imageTag)
+      appSettings: '-Port $(containerPort)'

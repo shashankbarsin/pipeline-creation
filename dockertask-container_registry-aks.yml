@@ -70,4 +70,3 @@ jobs:
           - port: $(containerPort)
           selector:
             app: $(imageName)
-
