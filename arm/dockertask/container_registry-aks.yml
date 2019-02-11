@@ -1,0 +1,109 @@
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+
+  # Update Azure.ResourceGroupName value with Azure resource group name.
+  Azure.ResourceGroupName: '{{#toAlphaNumericString repositoryName 50}}{{/toAlphaNumericString}}'
+
+  # Update Azure.ServiceConnectionId value with AzureRm service endpoint.
+  Azure.ServiceConnectionId: '{{ azureServiceConnectionId }}'
+
+  # Update Azure.Location value with Azure Location.
+  Azure.Location: 'eastus'
+
+  ContainerRegistry.ServiceConnection: '{{ containerRegistryServiceConnection }}'
+  ContainerRegistry.Name: '{{ containerRegistry }}'
+
+  Image.Name: '$(Build.Repository.Name)'
+
+  # Update AKS.ClusterName value Azure kubernetes cluster name.
+  AKS.ClusterName: '{{#toAlphaNumericString repositoryName 32}}{{/toAlphaNumericString}}'
+
+  # Based on PORT in Dockerfile. Otherwise default value set
+  Container.Port: '{{ containerPort }}'
+
+  # Implicilty generated during pipeline creation flow
+  Environment.Name: '{{ environmentName }}'
+  Environment.k8sResource.Name: '{{ k8sResourceName }}'
+
+jobs:
+
+- job: CreateResources
+  displayName: Create resources
+
+  pool:
+    vmImage: 'Ubuntu-16.04'
+
+  steps:
+  - task: AzureResourceGroupDeployment@2
+    displayName: 'Azure Deployment:Create ACR and AKS'
+    inputs:
+      azureSubscription: '$(Azure.ServiceConnectionId)'
+      resourceGroupName: '$(Azure.ResourceGroupName)'
+      location: '$(Azure.Location)'
+      templateLocation: 'URL of the file'
+      addSpnToEnvironment: true
+      csmFileLink: 'https://raw.githubusercontent.com/Microsoft/azure-pipelines-yaml/master/templates/resources/arm/aks.json'
+      overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)" -servicePrincipalId $servicePrincipalId -servicePrincipalKey $servicePrincipalKey -clusterName "$(AKS.ClusterName)" -clusterLocation "$(Azure.Location)"'
+
+- job: Build
+  displayName: Build
+  dependsOn: CreateResources
+  condition: succeeded()
+
+  pool:
+    vmImage: 'Ubuntu-16.04'
+
+  steps:
+  - use: docker
+    auth:
+    - $(ContainerRegistry.ServiceConnection)
+  - task: Docker@2
+    displayName: Build and push an image to container registry
+    repository: $(Image.Name)
+
+- deployment: Deploy to Kubernetes
+  displayName: Deploy
+  dependsOn: Build
+  condition: succeeded()
+  environment: $(Environment.Name).$(Environment.k8sResource.Name)
+  steps:
+  - task: KubernetesManifestBased@1
+    inputs:
+      actions: deploy
+      namespace: staging
+      secrets:
+      - secret1: containerRegistryServiceConnection
+      containers:
+      - $(containerRegistry)/$(Image.Name)
+      inlineSpec: |
+        kind: Deployment
+        metadata:
+          name: $(Image.Name)
+        spec:
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                app: $(Image.Name)
+            spec:
+              containers:
+              - name: $(Image.Name)
+                image: $(ContainerRegistry.Name)/$(Image.Name)
+                ports:
+                - containerPort: $(Container.Port)
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: $(Image.Name)
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: $(Container.Port)
+          selector:
+            app: $(Image.Name)

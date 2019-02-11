@@ -12,6 +12,9 @@ variables:
   imageName: '$(Build.Repository.Name)'
   imageTag: '$(Build.BuildId)'
   
+pool:
+  vmImage: 'Ubuntu-16.04'
+
 steps:
 - use: docker
   auth:

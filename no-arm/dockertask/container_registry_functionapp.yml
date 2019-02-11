@@ -17,7 +17,7 @@ variables:
 
   # Details of the deployment target
   ARMServiceConnection: '{{ ARMServiceConnection }}'
-  webAppName: '{{ webAppName }}'
+  functionAppName: '{{ functionAppName }}'
 
 jobs:
 - job: Build
@@ -30,15 +30,15 @@ jobs:
     displayName: Build and push an image to container registry
     repository: $(imageName)
 
-- deployment: Deploy to Web App for Containers
+- deployment: Deploy to Function App for Containers
   displayName: Deploy
   dependsOn: Build
   condition: succeeded()
   steps:
-  - task: AzureWebAppContainer@1
-    displayName: Deploy to Web App for Containers
+  - task: AzureFunctionAppContainer@1
+    displayName: Deploy to Function App for Containers
     inputs:
       azureSubscription: $(ARMServiceConnection)
-      appName: $(webAppName)
-      imageName: $(imageName):$(imageTag)
+      appName: $(functionAppName)
+      imageName: $(containerRegistry)/$(imageName):$(imageTag)
       appSettings: '-Port $(containerPort)'

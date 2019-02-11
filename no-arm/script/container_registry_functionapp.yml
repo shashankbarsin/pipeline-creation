@@ -22,14 +22,18 @@ variables:
 jobs:
 - job: Build
   displayName: Build
+
+  pool:
+    vmImage: 'Ubuntu-16.04'
+
   steps:
   - use: docker
     auth:
     - $(containerRegistryServiceConnection)
-  - task: Docker@2
-    displayName: Build and push an image to container registry
-    repository: $(imageName)
-
+  - script: |
+      docker build -t $(containerRegistry)/$(imageName):$(imageTag)
+      docker push $(containerRegistry)/$(imageName):$(imageTag)
+    
 - deployment: Deploy to Function App for Containers
   displayName: Deploy
   dependsOn: Build
@@ -40,5 +44,5 @@ jobs:
     inputs:
       azureSubscription: $(ARMServiceConnection)
       appName: $(functionAppName)
-      imageName: $(imageName):$(imageTag)
+      imageName: $(containerRegistry)/$(imageName):$(imageTag)
       appSettings: '-Port $(containerPort)'

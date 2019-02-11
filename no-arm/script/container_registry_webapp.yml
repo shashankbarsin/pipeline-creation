@@ -21,7 +21,11 @@ variables:
 
 jobs:
 - job: Build
-  displayName: Build 
+  displayName: Build
+
+  pool:
+    vmImage: 'Ubuntu-16.04'
+
   steps:
   - use: docker
     auth:
@@ -40,5 +44,5 @@ jobs:
     inputs:
       azureSubscription: $(ARMServiceConnection)
       appName: $(webAppName)
-      imageName: $(imageName):$(imageTag)
+      imageName: $(containerRegistry)/$(imageName):$(imageTag)
       appSettings: '-Port $(containerPort)'
