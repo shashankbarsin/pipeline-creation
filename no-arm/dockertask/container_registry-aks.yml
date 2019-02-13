@@ -6,67 +6,42 @@ resources:
 
 variables:
   # container registry service connection established during pipeline creation - Docker Hub/ACR/...
-  containerRegistryServiceConnection: '{{ containerRegistryServiceConnection }}'
+  ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
   # name of the container registry specified for above service connection
-  containerRegistry: '{{ containerRegistry }}'
-  imageName: '$(Build.Repository.Name)'
+  ContainerRegistry.Name: '{{containerRegistry}}'
+  Image.Name: '$(Build.Repository.Name)'
 
   # Based on PORT in Dockerfile. Otherwise default value set
-  containerPort: '{{ containerPort }}'
+  Container.Port: {{containerPort}}
 
   # Implicilty generated during pipeline creation flow
-  environmentName: '{{ environmentName }}'
-  k8sresourceName: '{{ k8sResourceName }}'
+  Environment.Name: '{{environmentName}}'
+  Environment.k8sResource.Name: '{{k8sResourceName}}'
+  Environment.k8sResource.Namespace: '{{k8sResourceNamespace}}'
   
 jobs:
 - job: Build
   displayName: Build
   steps:
-  - use: docker
-    auth:
-    - $(containerRegistryServiceConnection)
   - task: Docker@2
     displayName: Build and push an image to container registry
-    repository: $(imageName)
+    inputs:
+      repository: $(Image.Name)
+      containerRegistries:
+      - $(ContainerRegistry.ServiceConnection)
 
 - deployment: Deploy to Kubernetes
   displayName: Deploy
   dependsOn: Build
-  condition: succeeded()
-  environment: $(environmentName).$(k8sResourceName)
+  environment: $(Environment.Name).$(Environment.k8sResource.Name)
   steps:
   - task: KubernetesManifestBased@1
     inputs:
       actions: deploy
-      namespace: staging
+      namespace: $(Environment.k8sResource.Namespace)
       secrets:
-      - secret1: containerRegistryServiceConnection
+      - secret1: $(ContainerRegistry.ServiceConnection)
+      manifests:
+      - manifests/*
       containers:
-      - $(containerRegistry)/$(imageName)
-      inlineSpec: |
-        kind: Deployment
-        metadata:
-          name: $(imageName)
-        spec:
-          replicas: 1
-          template:
-            metadata:
-              labels:
-                app: $(imageName)
-            spec:
-              containers:
-              - name: $(imageName)
-                image: $(containerRegistry)/$(imageName)
-                ports:
-                - containerPort: $(containerPort)
-        ---
-        apiVersion: v1
-        kind: Service
-        metadata:
-          name: $(imageName)
-        spec:
-          type: LoadBalancer
-          ports:
-          - port: $(containerPort)
-          selector:
-            app: $(imageName)
+      - $(ContainerRegistry.Name)/$(Image.Name)

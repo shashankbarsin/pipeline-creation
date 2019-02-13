@@ -10,13 +10,13 @@ variables:
   Azure.ResourceGroupName: '{{#toAlphaNumericString repositoryName 50}}{{/toAlphaNumericString}}'
 
   # Update Azure.ServiceConnectionId value with AzureRm service endpoint.
-  Azure.ServiceConnectionId: '{{ azureServiceConnectionId }}'
+  Azure.ServiceConnectionId: '{{azureServiceConnectionId}}'
 
   # Update Azure.Location value with Azure Location.
   Azure.Location: 'eastus'
 
-  ContainerRegistry.ServiceConnection: '{{ containerRegistryServiceConnection }}'
-  ContainerRegistry.Name: '{{ containerRegistry }}'
+  ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
+  ContainerRegistry.Name: '{{containerRegistry}}'
 
   Image.Name: '$(Build.Repository.Name)'
 
@@ -42,15 +42,14 @@ jobs:
 - job: Build
   displayName: Build
   dependsOn: CreateResources
-  condition: succeeded()
 
   pool:
     vmImage: 'Ubuntu-16.04'
 
   steps:
-  - use: docker
-    auth:
-    - $(ContainerRegistry.ServiceConnection)
   - task: Docker@2
     displayName: Build and push an image to container registry
-    repository: $(Image.Name)
+    inputs:
+      repository: $(Image.Name)
+      containerRegistries:
+      - $(ContainerRegistry.ServiceConnection)

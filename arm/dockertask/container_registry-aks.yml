@@ -10,13 +10,13 @@ variables:
   Azure.ResourceGroupName: '{{#toAlphaNumericString repositoryName 50}}{{/toAlphaNumericString}}'
 
   # Update Azure.ServiceConnectionId value with AzureRm service endpoint.
-  Azure.ServiceConnectionId: '{{ azureServiceConnectionId }}'
+  Azure.ServiceConnectionId: '{{azureServiceConnectionId}}'
 
   # Update Azure.Location value with Azure Location.
   Azure.Location: 'eastus'
 
-  ContainerRegistry.ServiceConnection: '{{ containerRegistryServiceConnection }}'
-  ContainerRegistry.Name: '{{ containerRegistry }}'
+  ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
+  ContainerRegistry.Name: '{{containerRegistry}}'
 
   Image.Name: '$(Build.Repository.Name)'
 
@@ -24,11 +24,12 @@ variables:
   AKS.ClusterName: '{{#toAlphaNumericString repositoryName 32}}{{/toAlphaNumericString}}'
 
   # Based on PORT in Dockerfile. Otherwise default value set
-  Container.Port: '{{ containerPort }}'
+  Container.Port: {{containerPort}}
 
   # Implicilty generated during pipeline creation flow
-  Environment.Name: '{{ environmentName }}'
-  Environment.k8sResource.Name: '{{ k8sResourceName }}'
+  Environment.Name: '{{environmentName}}'
+  Environment.k8sResource.Name: '{{k8sResourceName}}'
+  Environment.k8sResource.Namespace: '{{k8sResourceNamespace}}'
 
 jobs:
 
@@ -53,57 +54,30 @@ jobs:
 - job: Build
   displayName: Build
   dependsOn: CreateResources
-  condition: succeeded()
 
   pool:
     vmImage: 'Ubuntu-16.04'
 
   steps:
-  - use: docker
-    auth:
-    - $(ContainerRegistry.ServiceConnection)
   - task: Docker@2
     displayName: Build and push an image to container registry
-    repository: $(Image.Name)
+    inputs:
+      repository: $(Image.Name)
+      containerRegistries:
+      - $(ContainerRegistry.ServiceConnection)
 
 - deployment: Deploy to Kubernetes
   displayName: Deploy
   dependsOn: Build
-  condition: succeeded()
   environment: $(Environment.Name).$(Environment.k8sResource.Name)
   steps:
   - task: KubernetesManifestBased@1
     inputs:
-      actions: deploy
-      namespace: staging
+      action: deploy
+      namespace: $(Environment.k8sResource.Namespace)
       secrets:
-      - secret1: containerRegistryServiceConnection
+      - imagePullSecret1: $(ContainerRegistry.ServiceConnection)
+      manifests:
+      - manifests/*
       containers:
       - $(containerRegistry)/$(Image.Name)
-      inlineSpec: |
-        kind: Deployment
-        metadata:
-          name: $(Image.Name)
-        spec:
-          replicas: 1
-          template:
-            metadata:
-              labels:
-                app: $(Image.Name)
-            spec:
-              containers:
-              - name: $(Image.Name)
-                image: $(ContainerRegistry.Name)/$(Image.Name)
-                ports:
-                - containerPort: $(Container.Port)
-        ---
-        apiVersion: v1
-        kind: Service
-        metadata:
-          name: $(Image.Name)
-        spec:
-          type: LoadBalancer
-          ports:
-          - port: $(Container.Port)
-          selector:
-            app: $(Image.Name)
