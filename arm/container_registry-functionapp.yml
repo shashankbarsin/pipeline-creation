@@ -32,15 +32,14 @@ variables:
   # Based on PORT in Dockerfile. Otherwise default value set
   Container.Port: {{containerPort}}
 
+  # Implicilty generated during pipeline creation flow
+  Environment.Name: '{{environmentName}}'
+  Environment.FunctionAppResource.Name: '{{FunctionAppResourceName}}'
+
 jobs:
 
 - job: CreateResources
   displayName: Create resources
-  condition: and(succeeded(), eq(variables['Azure.CreateResources'], 'true'))
-
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
   steps:
   - task: AzureResourceGroupDeployment@2
     displayName: 'Azure Deployment:Create Azure Container Registry, Azure WebApp Service'
@@ -55,25 +54,19 @@ jobs:
 - job: BuildImage
   displayName: Build
   dependsOn: CreateResources
-
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
   steps:
   - task: Docker@2
     displayName: Build and push an image to container registry
     inputs:
+      command: buildAndPush
       repository: $(Image.Name)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)
 
-- job: Deploy to Function App for Containers
+- deployment: Deploy to Function App for Containers
   displayName: Deploy
   dependsOn: BuildImage
-
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
+  environment: $(Environment.Name).$(Environment.FunctionAppResource.Name)
   steps:
   - task: AzureFunctionAppContainer@1
     displayName: 'Azure Function App on Container Deploy: $(FunctionApp.Name)'

@@ -19,6 +19,10 @@ variables:
   Azure.ServiceConnectionId: '{{Azure.ServiceConnectionId}}'
   WebApp.Name: '{{webAppName}}'
 
+  # Implicilty generated during pipeline creation flow
+  Environment.Name: '{{environmentName}}'
+  Environment.WebAppResource.Name: '{{WebAppResourceName}}'
+
 jobs:
 - job: Build
   displayName: Build
@@ -26,6 +30,7 @@ jobs:
   - task: Docker@2
     displayName: Build and push an image to container registry
     inputs:
+      command: buildAndPush
       repository: $(Image.Name)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)
@@ -33,6 +38,7 @@ jobs:
 - deployment: Deploy to Web App for Containers
   displayName: Deploy
   dependsOn: Build
+  environment: $(Environment.Name).$(Environment.WebAppResource.Name)
   steps:
   - task: AzureWebAppContainer@1
     displayName: Deploy to Web App for Containers

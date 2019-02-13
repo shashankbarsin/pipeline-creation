@@ -24,10 +24,6 @@ jobs:
 
 - job: CreateResources
   displayName: Create required resources
-
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
   steps:
   - task: AzureResourceGroupDeployment@2
     displayName: 'Azure Deployment:Create Azure Container Registry'
@@ -42,14 +38,11 @@ jobs:
 - job: Build
   displayName: Build
   dependsOn: CreateResources
-
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
   steps:
   - task: Docker@2
     displayName: Build and push an image to container registry
     inputs:
+      command: buildAndPush
       repository: $(Image.Name)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)

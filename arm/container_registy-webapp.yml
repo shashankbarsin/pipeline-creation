@@ -29,14 +29,14 @@ variables:
   # Based on PORT in Dockerfile. Otherwise default value set
   Container.Port: {{containerPort}}
 
+  # Implicilty generated during pipeline creation flow
+  Environment.Name: '{{environmentName}}'
+  Environment.WebAppResource.Name: '{{WebAppResourceName}}'
+
 jobs:
 
 - job: CreateResources
   displayName: Create resources
-
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
   steps:
   - task: AzureResourceGroupDeployment@2
     displayName: 'Azure Deployment:Create Azure Container Registry, Azure WebApp Service'
@@ -51,14 +51,11 @@ jobs:
 - job: Build
   displayName: Build
   dependsOn: CreateResources
-
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
   steps:
   - task: Docker@2
     displayName: Build and push an image to container registry
     inputs:
+      command: buildAndPush
       repository: $(Image.Name)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)
@@ -66,10 +63,7 @@ jobs:
 - deployment: Deploy to Web App for Containers
   displayName: Deploy
   dependsOn: Build
-
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
+  environment: $(Environment.Name).$(Environment.WebAppResource.Name)
   steps:
   - task: AzureWebAppContainer@1
     displayName: 'Azure Web App on Container Deploy: $(WebApp.Name)'

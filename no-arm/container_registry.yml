@@ -12,7 +12,8 @@ variables:
 steps:
 - task: Docker@2
   displayName: Build and push an image to container registry
-  inputs:  
+  inputs:
+    command: buildAndPush
     repository: $(Image.Name)
     containerRegistries:
     - $(ContainerRegistry.ServiceConnection)
