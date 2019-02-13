@@ -40,7 +40,7 @@ jobs:
       actions: deploy
       namespace: $(Environment.k8sResource.Namespace)
       secrets:
-      - secret1: $(ContainerRegistry.ServiceConnection)
+      - imagePullSecret1: $(ContainerRegistry.ServiceConnection)
       manifests:
       - manifests/*
       containers:
