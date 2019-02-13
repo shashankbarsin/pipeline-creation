@@ -1,0 +1,18 @@
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  # container registry service connection established during pipeline creation - Docker Hub/ACR/...
+  ContainerRegistry.Serviceconnection: '{{containerRegistryServiceConnection}}'
+  Image.Name: '$(Build.Repository.Name)'
+  
+steps:
+  - use: docker
+    auth:
+    - $(ContainerRegistry.ServiceConnection)
+  - script: |
+      docker build -t $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      docker push $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)

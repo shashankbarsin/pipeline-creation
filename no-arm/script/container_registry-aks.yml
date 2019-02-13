@@ -1,0 +1,48 @@
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  # container registry service connection established during pipeline creation - Docker Hub/ACR/...
+  ContainerRegistry.ServiceConnection: '{{ containerRegistryServiceConnection }}'
+  # name of the container registry specified for above service connection
+  ContainerRegistry.Name: '{{ containerRegistry }}'
+  Image.Name: '$(Build.Repository.Name)'
+  Image.Tag: '$(Build.BuildId)'
+
+  # Based on PORT in Dockerfile. Otherwise default value set
+  Container.Port: '{{ containerPort }}'
+
+  # Implicilty generated during pipeline creation flow
+  Environment.Name: '{{ environmentName }}'
+  Environment.k8sResource.Name: '{{ k8sresourceName }}'
+  Environment.k8sResource.Namespace: '{{ k8sresourceNamespace }}'
+
+jobs:
+- job: Build
+  displayName: Build
+  steps:
+  - use: docker
+    auth:
+    - $(ContainerRegistry.ServiceConnection)
+  - script: |
+      docker build -t $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      docker push $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+    
+- deployment: Deploy to Kubernetes
+  displayName: Deploy
+  dependsOn: Build
+  environment: $(Environment.Name).$(Environment.k8sResource.Name)
+  steps:
+  - task: KubernetesManifestBased@1
+    inputs:
+      actions: deploy
+      namespace: $(Environment.k8sResource.Namespace)
+      secrets:
+      - imagePullSecret1: $(ContainerRegistry.ServiceConnection)
+      manifests:
+      - manifests/*
+      containers:
+      - $(ContainerRegistry.Name)/$(Image.Name)

@@ -1,0 +1,48 @@
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  # container registry service connection established during pipeline creation - Docker Hub/ACR/...
+  ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
+  # name of the container registry specified for above service connection
+  ContainerRegistry.Name: '{{containerRegistry}}'
+  Image.Name: '$(Build.Repository.Name)'
+  Image.Tag: '$(Build.BuildId)'
+
+  # Details of the deployment target
+  Azure.ServiceConnectionId: '{{ARMServiceConnection}}'
+  FunctionApp.Name: '{{functionAppName}}'
+
+  # Based on PORT in Dockerfile. Otherwise default value set
+  Container.Port: {{containerPort}}
+
+  # Implicilty generated during pipeline creation flow
+  Environment.Name: '{{environmentName}}'
+  Environment.FunctionAppResource.Name: '{{FunctionAppResourceName}}'
+
+jobs:
+- job: Build
+  displayName: Build
+  steps:
+  - use: docker
+    auth:
+    - $(ContainerRegistry.ServiceConnection)
+  - script: |
+      docker build -t $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      docker push $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+
+- deployment: Deploy to Function App for Containers
+  displayName: Deploy
+  dependsOn: Build
+  environment: $(Environment.Name).$(Environment.FunctionAppResource.Name)
+  steps:
+  - task: AzureFunctionAppContainer@1
+    displayName: Deploy to Function App for Containers
+    inputs:
+      azureSubscription: $(Azure.ServiceConnectionId)
+      appName: $(FunctionApp.Name)
+      imageName: $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      appSettings: '-Port $(Container.Port)'
