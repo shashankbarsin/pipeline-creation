@@ -7,13 +7,13 @@ resources:
 variables:
   # container registry service connection established during pipeline creation - Docker Hub/ACR/...
   ContainerRegistry.Serviceconnection: '{{containerRegistryServiceConnection}}'
-  Image.Name: '$(Build.Repository.Name)'
+  Image.Repository: '$(Build.Repository.Name)'
   
 steps:
 - task: Docker@2
   displayName: Build and push an image to container registry
   inputs:
     command: buildAndPush
-    repository: $(Image.Name)
+    repository: $(Image.Repository)
     containerRegistries:
     - $(ContainerRegistry.ServiceConnection)

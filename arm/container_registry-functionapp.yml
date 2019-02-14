@@ -17,7 +17,7 @@ variables:
   ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
   ContainerRegistry.Name: '{{containerRegistry}}'
 
-  Image.Name: '$(Build.Repository.Name)'
+  Image.Repository: '$(Build.Repository.Name)'
   Image.Tag: '$(Build.BuildId)'
   
   # Update FunctionApp.Name value with a name that identifies your new function app. Valid characters are a-z, 0-9, and -.
@@ -59,7 +59,7 @@ jobs:
     displayName: Build and push an image to container registry
     inputs:
       command: buildAndPush
-      repository: $(Image.Name)
+      repository: $(Image.Repository)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)
 
@@ -73,5 +73,5 @@ jobs:
     inputs:
       azureSubscription: '$(Azure.ServiceConnectionId)'
       appName: $(FunctionApp.Name)
-      imageName: $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
       appSettings: '-Port $(Container.Port)'

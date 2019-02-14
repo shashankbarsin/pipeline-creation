@@ -18,7 +18,7 @@ variables:
   ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
   ContainerRegistry.Name: '{{containerRegistry}}'
 
-  Image.Name: '$(Build.Repository.Name)'
+  Image.Repository: '$(Build.Repository.Name)'
 
   # Update AKS.ClusterName value Azure kubernetes cluster name.
   AKS.ClusterName: '{{#toAlphaNumericString repositoryName 32}}{{/toAlphaNumericString}}'
@@ -55,7 +55,7 @@ jobs:
     displayName: Build and push an image to container registry
     inputs:
       command: buildAndPush
-      repository: $(Image.Name)
+      repository: $(Image.Repository)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)
 
@@ -73,4 +73,4 @@ jobs:
       manifests:
       - manifests/*
       containers:
-      - $(containerRegistry)/$(Image.Name)
+      - $(ContainerRegistry.Name)/$(Image.Repository)

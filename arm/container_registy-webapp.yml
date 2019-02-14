@@ -17,7 +17,7 @@ variables:
   ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
   ContainerRegistry.Name: '{{containerRegistry}}'
 
-  Image.Name: '$(Build.Repository.Name)'
+  Image.Repository: '$(Build.Repository.Name)'
   Image.Tag: '$(Build.BuildId)'
   
   # Update Web.Name value with a name that identifies your new Web app. Valid characters are a-z, 0-9, and -.
@@ -46,7 +46,7 @@ jobs:
       location: '$(Azure.Location)'
       templateLocation: 'URL of the file'
       csmFileLink: 'https://raw.githubusercontent.com/Microsoft/azure-pipelines-yaml/master/templates/resources/arm/webapp-on-containers.json'
-      overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)" -imageName "$(Image.Name)" -webAppName "$(WebApp.Name)" -hostingPlanName "$(ServicePlan.Name)"'
+      overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)" -imageName "$(Image.Repository)" -webAppName "$(WebApp.Name)" -hostingPlanName "$(ServicePlan.Name)"'
 
 - job: Build
   displayName: Build
@@ -56,7 +56,7 @@ jobs:
     displayName: Build and push an image to container registry
     inputs:
       command: buildAndPush
-      repository: $(Image.Name)
+      repository: $(Image.Repository)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)
 
@@ -70,5 +70,5 @@ jobs:
     inputs:
       azureSubscription: '$(Azure.ServiceConnectionId)'
       appName: $(WebApp.Name)
-      imageName: $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
       appSettings: '-Port $(Container.Port)'

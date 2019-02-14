@@ -9,7 +9,7 @@ variables:
   ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
   # name of the container registry specified for above service connection
   ContainerRegistry.Name: '{{containerRegistry}}'
-  Image.Name: '$(Build.Repository.Name)'
+  Image.Repository: '$(Build.Repository.Name)'
   Image.Tag: '$(Build.BuildId)'
 
   # Based on PORT in Dockerfile. Otherwise default value set
@@ -31,7 +31,7 @@ jobs:
     displayName: Build and push an image to container registry
     inputs:
       command: buildAndPush
-      repository: $(Image.Name)
+      repository: $(Image.Repository)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)
 
@@ -45,5 +45,5 @@ jobs:
     inputs:
       azureSubscription: $(Azure.ServiceConnectionId)
       appName: $(FunctionApp.Name)
-      imageName: $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
       appSettings: '-Port $(Container.Port)'

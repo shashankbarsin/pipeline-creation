@@ -9,7 +9,7 @@ variables:
   ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
   # name of the container registry specified for above service connection
   ContainerRegistry.Name: '{{containerRegistry}}'
-  Image.Name: '$(Build.Repository.Name)'
+  Image.Repository: '$(Build.Repository.Name)'
   Image.Tag: '$(Build.BuildId)'
 
   # Based on PORT in Dockerfile. Otherwise default value set
@@ -31,8 +31,8 @@ jobs:
     auth:
     - $(ContainerRegistry.ServiceConnection)
   - script: |
-      docker build -t $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
-      docker push $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      docker build -t $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+      docker push $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
 
 - deployment: Deploy to Web App for Containers
   displayName: Deploy
@@ -44,5 +44,5 @@ jobs:
     inputs:
       azureSubscription: $(Azure.ServiceConnectionId)
       appName: $(WebApp.Name)
-      imageName: $(ContainerRegistry.Name)/$(Image.Name):$(Image.Tag)
+      imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
       appSettings: '-Port $(Container.Port)'

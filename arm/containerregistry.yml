@@ -18,7 +18,7 @@ variables:
   ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
   ContainerRegistry.Name: '{{containerRegistry}}'
 
-  Image.Name: '$(Build.Repository.Name)'
+  Image.Repository: '$(Build.Repository.Name)'
 
 jobs:
 
@@ -43,6 +43,6 @@ jobs:
     displayName: Build and push an image to container registry
     inputs:
       command: buildAndPush
-      repository: $(Image.Name)
+      repository: $(Image.Repository)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)

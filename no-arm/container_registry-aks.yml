@@ -9,7 +9,7 @@ variables:
   ContainerRegistry.ServiceConnection: '{{containerRegistryServiceConnection}}'
   # name of the container registry specified for above service connection
   ContainerRegistry.Name: '{{containerRegistry}}'
-  Image.Name: '$(Build.Repository.Name)'
+  Image.Repository: '$(Build.Repository.Name)'
 
   # Based on PORT in Dockerfile. Otherwise default value set
   Container.Port: {{containerPort}}
@@ -27,7 +27,7 @@ jobs:
     displayName: Build and push an image to container registry
     inputs:
       command: buildAndPush
-      repository: $(Image.Name)
+      repository: $(Image.Repository)
       containerRegistries:
       - $(ContainerRegistry.ServiceConnection)
 
@@ -45,4 +45,4 @@ jobs:
       manifests:
       - manifests/*
       containers:
-      - $(ContainerRegistry.Name)/$(Image.Name)
+      - $(ContainerRegistry.Name)/$(Image.Repository)
