@@ -18,31 +18,38 @@ variables:
   Environment.Name: '{{environmentName}}'
   Environment.k8sResource.Name: '{{k8sResourceName}}'
   Environment.k8sResource.Namespace: '{{k8sResourceNamespace}}'
-  
-jobs:
-- job: Build
-  displayName: Build
-  steps:
-  - task: Docker@2
-    displayName: Build and push an image to container registry
-    inputs:
-      command: buildAndPush
-      repository: $(Image.Repository)
-      containerRegistries:
-      - $(ContainerRegistry.ServiceConnection)
 
-- deployment: Deploy to Kubernetes
-  displayName: Deploy
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:  
+  - job: Build
+    displayName: Build job
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(Image.Repository)
+        containerRegistries:
+        - $(ContainerRegistry.ServiceConnection)
+
+- stage: Deploy
+  displayName: Deploy stage
   dependsOn: Build
-  environment: $(Environment.Name).$(Environment.k8sResource.Name)
-  steps:
-  - task: KubernetesManifestBased@1
-    inputs:
-      actions: deploy
-      namespace: $(Environment.k8sResource.Namespace)
-      secrets:
-      - imagePullSecret1: $(ContainerRegistry.ServiceConnection)
-      manifests:
-      - manifests/*
-      containers:
-      - $(ContainerRegistry.Name)/$(Image.Repository)
+  jobs:
+  - deployment: Deploy to Kubernetes
+    displayName: Deploy job
+    environment: $(Environment.Name).$(Environment.k8sResource.Name)
+    steps:
+    - task: KubernetesManifest@1
+      displayName: Deploy to Kubernetes cluster
+      inputs:
+        actions: deploy
+        namespace: $(Environment.k8sResource.Namespace)
+        secrets:
+        - imagePullSecret1: $(ContainerRegistry.ServiceConnection)
+        manifests:
+        - manifests/*
+        containers:
+        - $(ContainerRegistry.Name)/$(Image.Repository)

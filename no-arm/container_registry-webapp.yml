@@ -23,27 +23,33 @@ variables:
   Environment.Name: '{{environmentName}}'
   Environment.WebAppResource.Name: '{{WebAppResourceName}}'
 
-jobs:
-- job: Build
-  displayName: Build
-  steps:
-  - task: Docker@2
-    displayName: Build and push an image to container registry
-    inputs:
-      command: buildAndPush
-      repository: $(Image.Repository)
-      containerRegistries:
-      - $(ContainerRegistry.ServiceConnection)
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: Build
+    displayName: Build job
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(Image.Repository)
+        containerRegistries:
+        - $(ContainerRegistry.ServiceConnection)
 
-- deployment: Deploy to Web App for Containers
-  displayName: Deploy
+- stage: Deploy
+  displayName: Deploy stage
   dependsOn: Build
-  environment: $(Environment.Name).$(Environment.WebAppResource.Name)
-  steps:
-  - task: AzureWebAppContainer@1
-    displayName: Deploy to Web App for Containers
-    inputs:
-      azureSubscription: $(Azure.ServiceConnectionId)
-      appName: $(WebApp.Name)
-      imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
-      appSettings: '-Port $(Container.Port)'
+  jobs:
+  - deployment: Deploy to Web App for Containers
+    displayName: Deploy job
+    environment: $(Environment.Name).$(Environment.WebAppResource.Name)
+    steps:
+    - task: AzureWebAppContainer@1
+      displayName: Deploy to Web App for Containers
+      inputs:
+        azureSubscription: $(Azure.ServiceConnectionId)
+        appName: $(WebApp.Name)
+        imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+        appSettings: '-Port $(Container.Port)'

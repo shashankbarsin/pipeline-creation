@@ -9,10 +9,17 @@ variables:
   ContainerRegistry.Serviceconnection: '{{containerRegistryServiceConnection}}'
   Image.Repository: '$(Build.Repository.Name)'
   
-steps:
-  - use: docker
-    auth:
-    - $(ContainerRegistry.ServiceConnection)
-  - script: |
-      docker build -t $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
-      docker push $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: Build
+    displayName: Build job
+    steps:
+    - use: docker
+      auth:
+      - $(ContainerRegistry.ServiceConnection)
+    - script: |
+        docker build -t $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+        docker push $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+      displayName: Build and push an image to container registry

@@ -20,29 +20,35 @@ variables:
 
   Image.Repository: '$(Build.Repository.Name)'
 
-jobs:
 
-- job: CreateResources
-  displayName: Create required resources
-  steps:
-  - task: AzureResourceGroupDeployment@2
-    displayName: 'Azure Deployment:Create Azure Container Registry'
-    inputs:
-      azureSubscription: '$(Azure.ServiceConnectionId)'
-      resourceGroupName: '$(Azure.ResourceGroupName)'
-      location: '$(Azure.Location)'
-      templateLocation: 'URL of the file'
-      csmFileLink: 'https://raw.githubusercontent.com/Microsoft/azure-pipelines-yaml/master/templates/resources/arm/acr.json'
-      overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)"'
+stages:
+- stage: CreateResources
+  displayName: Create resources stage
+  jobs:
+  - job: CreateResources
+    displayName: Create resources job
+    steps:
+    - task: AzureResourceGroupDeployment@2
+      displayName: 'Azure Deployment:Create Azure Container Registry'
+      inputs:
+        azureSubscription: '$(Azure.ServiceConnectionId)'
+        resourceGroupName: '$(Azure.ResourceGroupName)'
+        location: '$(Azure.Location)'
+        templateLocation: 'URL of the file'
+        csmFileLink: 'https://raw.githubusercontent.com/Microsoft/azure-pipelines-yaml/master/templates/resources/arm/acr.json'
+        overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)"'
 
-- job: Build
-  displayName: Build
+- stage: Build
+  displayName: Build stage
   dependsOn: CreateResources
-  steps:
-  - task: Docker@2
-    displayName: Build and push an image to container registry
-    inputs:
-      command: buildAndPush
-      repository: $(Image.Repository)
-      containerRegistries:
-      - $(ContainerRegistry.ServiceConnection)
+  jobs:
+  - job: Build
+    displayName: Build job
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(Image.Repository)
+        containerRegistries:
+        - $(ContainerRegistry.ServiceConnection)

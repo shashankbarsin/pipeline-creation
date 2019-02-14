@@ -36,42 +36,50 @@ variables:
   Environment.Name: '{{environmentName}}'
   Environment.FunctionAppResource.Name: '{{FunctionAppResourceName}}'
 
-jobs:
+stages:
+- stage: CreateResources
+  displayName: Create resources stage
+  jobs:
+  - job: CreateResources
+    displayName: Create resources job
+    steps:
+    - task: AzureResourceGroupDeployment@2
+      displayName: 'Azure Deployment:Create Azure Container Registry, Azure WebApp Service'
+      inputs:
+        azureSubscription: '$(Azure.ServiceConnectionId)'
+        resourceGroupName: '$(Azure.ResourceGroupName)'
+        location: '$(Azure.Location)'
+        templateLocation: 'URL of the file'
+        csmFileLink: 'https://raw.githubusercontent.com/Microsoft/azure-pipelines-yaml/master/templates/resources/arm/functionapp.json'
+        overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)" -functionAppName "$(FunctionApp.Name)" -hostingPlanName "$(ServicePlan.Name)" -storageAccountName "$(StorageAccount.Name)"'
 
-- job: CreateResources
-  displayName: Create resources
-  steps:
-  - task: AzureResourceGroupDeployment@2
-    displayName: 'Azure Deployment:Create Azure Container Registry, Azure WebApp Service'
-    inputs:
-      azureSubscription: '$(Azure.ServiceConnectionId)'
-      resourceGroupName: '$(Azure.ResourceGroupName)'
-      location: '$(Azure.Location)'
-      templateLocation: 'URL of the file'
-      csmFileLink: 'https://raw.githubusercontent.com/Microsoft/azure-pipelines-yaml/master/templates/resources/arm/functionapp.json'
-      overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)" -functionAppName "$(FunctionApp.Name)" -hostingPlanName "$(ServicePlan.Name)" -storageAccountName "$(StorageAccount.Name)"'
-
-- job: BuildImage
-  displayName: Build
+- stage: Build
+  displayName: Build stage
   dependsOn: CreateResources
-  steps:
-  - task: Docker@2
-    displayName: Build and push an image to container registry
-    inputs:
-      command: buildAndPush
-      repository: $(Image.Repository)
-      containerRegistries:
-      - $(ContainerRegistry.ServiceConnection)
+  jobs:
+  - job: Build
+    displayName: Build job
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(Image.Repository)
+        containerRegistries:
+        - $(ContainerRegistry.ServiceConnection)
 
-- deployment: Deploy to Function App for Containers
-  displayName: Deploy
-  dependsOn: BuildImage
-  environment: $(Environment.Name).$(Environment.FunctionAppResource.Name)
-  steps:
-  - task: AzureFunctionAppContainer@1
-    displayName: 'Azure Function App on Container Deploy: $(FunctionApp.Name)'
-    inputs:
-      azureSubscription: '$(Azure.ServiceConnectionId)'
-      appName: $(FunctionApp.Name)
-      imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
-      appSettings: '-Port $(Container.Port)'
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy to Function App for Containers
+    displayName: Deploy job
+    environment: $(Environment.Name).$(Environment.FunctionAppResource.Name)
+    steps:
+    - task: AzureFunctionAppContainer@1
+      displayName: 'Azure Function App on Container Deploy: $(FunctionApp.Name)'
+      inputs:
+        azureSubscription: '$(Azure.ServiceConnectionId)'
+        appName: $(FunctionApp.Name)
+        imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+        appSettings: '-Port $(Container.Port)'

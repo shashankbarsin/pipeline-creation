@@ -23,26 +23,33 @@ variables:
   Environment.Name: '{{environmentName}}'
   Environment.FunctionAppResource.Name: '{{FunctionAppResourceName}}'
 
-jobs:
-- job: Build
-  displayName: Build
-  steps:
-  - use: docker
-    auth:
-    - $(ContainerRegistry.ServiceConnection)
-  - script: |
-      docker build -t $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
-      docker push $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: Build
+    displayName: Build job
+    steps:
+    - use: docker
+      auth:
+      - $(ContainerRegistry.ServiceConnection)
+    - script: |
+        docker build -t $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+        docker push $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+      displayName: Build and push an image to container registry
 
-- deployment: Deploy to Function App for Containers
-  displayName: Deploy
+- stage: Deploy
+  displayName: Deploy stage
   dependsOn: Build
-  environment: $(Environment.Name).$(Environment.FunctionAppResource.Name)
-  steps:
-  - task: AzureFunctionAppContainer@1
-    displayName: Deploy to Function App for Containers
-    inputs:
-      azureSubscription: $(Azure.ServiceConnectionId)
-      appName: $(FunctionApp.Name)
-      imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
-      appSettings: '-Port $(Container.Port)'
+  jobs:
+  - deployment: Deploy to Function App for Containers
+    displayName: Deploy job
+    environment: $(Environment.Name).$(Environment.FunctionAppResource.Name)
+    steps:
+    - task: AzureFunctionAppContainer@1
+      displayName: Deploy to Function App for Containers
+      inputs:
+        azureSubscription: $(Azure.ServiceConnectionId)
+        appName: $(FunctionApp.Name)
+        imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+        appSettings: '-Port $(Container.Port)'

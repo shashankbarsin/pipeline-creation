@@ -31,46 +31,55 @@ variables:
   Environment.k8sResource.Name: '{{k8sResourceName}}'
   Environment.k8sResource.Namespace: '{{k8sResourceNamespace}}'
 
-jobs:
+stages:
+- stage: CreateResources
+  displayName: Create resources stage
+  jobs:
+  - job: CreateResources
+    displayName: Create resources job
+    steps:
+    - task: AzureResourceGroupDeployment@2
+      displayName: 'Azure Deployment:Create ACR and AKS'
+      inputs:
+        azureSubscription: '$(Azure.ServiceConnectionId)'
+        resourceGroupName: '$(Azure.ResourceGroupName)'
+        location: '$(Azure.Location)'
+        templateLocation: 'URL of the file'
+        addSpnToEnvironment: true
+        csmFileLink: 'https://raw.githubusercontent.com/Microsoft/azure-pipelines-yaml/master/templates/resources/arm/aks.json'
+        overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)" -servicePrincipalId $servicePrincipalId -servicePrincipalKey $servicePrincipalKey -clusterName "$(AKS.ClusterName)" -clusterLocation "$(Azure.Location)"'
 
-- job: CreateResources
-  displayName: Create resources
-  steps:
-  - task: AzureResourceGroupDeployment@2
-    displayName: 'Azure Deployment:Create ACR and AKS'
-    inputs:
-      azureSubscription: '$(Azure.ServiceConnectionId)'
-      resourceGroupName: '$(Azure.ResourceGroupName)'
-      location: '$(Azure.Location)'
-      templateLocation: 'URL of the file'
-      addSpnToEnvironment: true
-      csmFileLink: 'https://raw.githubusercontent.com/Microsoft/azure-pipelines-yaml/master/templates/resources/arm/aks.json'
-      overrideParameters: '-registryName "$(ContainerRegistry.Name)" -registryLocation "$(Azure.Location)" -servicePrincipalId $servicePrincipalId -servicePrincipalKey $servicePrincipalKey -clusterName "$(AKS.ClusterName)" -clusterLocation "$(Azure.Location)"'
-
-- job: Build
-  displayName: Build
+- stage: Build
+  displayName: Build stage
   dependsOn: CreateResources
-  steps:
-  - task: Docker@2
-    displayName: Build and push an image to container registry
-    inputs:
-      command: buildAndPush
-      repository: $(Image.Repository)
-      containerRegistries:
-      - $(ContainerRegistry.ServiceConnection)
+  jobs:
+  - job: Build
+    displayName: Build job
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(Image.Repository)
+        containerRegistries:
+        - $(ContainerRegistry.ServiceConnection)
 
-- deployment: Deploy to Kubernetes
-  displayName: Deploy
+- stage: Deploy
+  displayName: Deploy stage
   dependsOn: Build
-  environment: $(Environment.Name).$(Environment.k8sResource.Name)
-  steps:
-  - task: KubernetesManifestBased@1
-    inputs:
-      action: deploy
-      namespace: $(Environment.k8sResource.Namespace)
-      secrets:
-      - imagePullSecret1: $(ContainerRegistry.ServiceConnection)
-      manifests:
-      - manifests/*
-      containers:
-      - $(ContainerRegistry.Name)/$(Image.Repository)
+  jobs:
+  - deployment: Deploy to Kubernetes
+    displayName: Deploy job
+    environment: $(Environment.Name).$(Environment.k8sResource.Name)
+    steps:
+    - task: KubernetesManifest@1
+      displayName: Deploy to Kubernetes cluster
+      inputs:
+        action: deploy
+        namespace: $(Environment.k8sResource.Namespace)
+        secrets:
+        - imagePullSecret1: $(ContainerRegistry.ServiceConnection)
+        manifests:
+        - manifests/*
+        containers:
+        - $(ContainerRegistry.Name)/$(Image.Repository)
