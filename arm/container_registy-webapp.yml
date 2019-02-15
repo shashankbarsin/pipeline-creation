@@ -62,14 +62,14 @@ stages:
       inputs:
         command: buildAndPush
         repository: $(Image.Repository)
-        containerRegistries:
-        - $(ContainerRegistry.ServiceConnection)
+        containerRegistries: |
+          $(ContainerRegistry.ServiceConnection)
 
 - stage: Deploy
   displayName: Deploy stage
   dependsOn: Build
   jobs:
-  - deployment: Deploy to Kubernetes
+  - deployment: Deploy to Web App
     displayName: Deploy job
     environment: $(Environment.Name).$(Environment.WebAppResource.Name)
     steps:

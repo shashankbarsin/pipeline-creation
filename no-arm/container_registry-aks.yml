@@ -31,8 +31,8 @@ stages:
       inputs:
         command: buildAndPush
         repository: $(Image.Repository)
-        containerRegistries:
-        - $(ContainerRegistry.ServiceConnection)
+        containerRegistries: |
+          $(ContainerRegistry.ServiceConnection)
 
 - stage: Deploy
   displayName: Deploy stage
@@ -47,9 +47,9 @@ stages:
       inputs:
         actions: deploy
         namespace: $(Environment.k8sResource.Namespace)
-        secrets:
-        - imagePullSecret1: $(ContainerRegistry.ServiceConnection)
-        manifests:
-        - manifests/*
-        containers:
-        - $(ContainerRegistry.Name)/$(Image.Repository)
+        secrets: |
+          imagePullSecret1: $(ContainerRegistry.ServiceConnection)
+        manifests: |
+          manifests/*
+        containers: |
+          $(ContainerRegistry.Name)/$(Image.Repository)

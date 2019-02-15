@@ -65,8 +65,8 @@ stages:
       inputs:
         command: buildAndPush
         repository: $(Image.Repository)
-        containerRegistries:
-        - $(ContainerRegistry.ServiceConnection)
+        containerRegistries: |
+          $(ContainerRegistry.ServiceConnection)
 
 - stage: Deploy
   displayName: Deploy stage
