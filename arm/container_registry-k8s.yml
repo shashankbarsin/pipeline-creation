@@ -81,7 +81,7 @@ stages:
               action: deploy
               namespace: $(Environment.k8sResource.Namespace)
               secrets: |
-                imagePullSecret1: $(ContainerRegistry.ServiceConnection)
+                docker-registry imagePullSecret1 $(ContainerRegistry.ServiceConnection)
               manifests: |
                 manifests/*
               containers: |
