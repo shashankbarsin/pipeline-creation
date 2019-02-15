@@ -75,11 +75,14 @@ stages:
   - deployment: Deploy to Function App for Containers
     displayName: Deploy job
     environment: $(Environment.Name).$(Environment.FunctionAppResource.Name)
-    steps:
-    - task: AzureFunctionAppContainer@1
-      displayName: 'Azure Function App on Container Deploy: $(FunctionApp.Name)'
-      inputs:
-        azureSubscription: '$(Azure.ServiceConnectionId)'
-        appName: $(FunctionApp.Name)
-        imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
-        appSettings: '-Port $(Container.Port)'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureFunctionAppContainer@1
+            displayName: 'Azure Function App on Container Deploy: $(FunctionApp.Name)'
+            inputs:
+              azureSubscription: '$(Azure.ServiceConnectionId)'
+              appName: $(FunctionApp.Name)
+              imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+              appSettings: '-Port $(Container.Port)'

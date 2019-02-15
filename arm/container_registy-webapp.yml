@@ -72,11 +72,14 @@ stages:
   - deployment: Deploy to Web App
     displayName: Deploy job
     environment: $(Environment.Name).$(Environment.WebAppResource.Name)
-    steps:
-    - task: AzureWebAppContainer@1
-      displayName: 'Azure Web App on Container Deploy: $(WebApp.Name)'
-      inputs:
-        azureSubscription: '$(Azure.ServiceConnectionId)'
-        appName: $(WebApp.Name)
-        imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
-        appSettings: '-Port $(Container.Port)'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: 'Azure Web App on Container Deploy: $(WebApp.Name)'
+            inputs:
+              azureSubscription: '$(Azure.ServiceConnectionId)'
+              appName: $(WebApp.Name)
+              imageName: $(ContainerRegistry.Name)/$(Image.Repository):$(Image.Tag)
+              appSettings: '-Port $(Container.Port)'

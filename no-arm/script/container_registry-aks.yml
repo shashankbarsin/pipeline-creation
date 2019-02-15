@@ -42,15 +42,18 @@ stages:
   - deployment: Deploy to Kubernetes
     displayName: Deploy job
     environment: $(Environment.Name).$(Environment.k8sResource.Name)
-    steps:
-    - task: KubernetesManifest@1
-      displayName: Deploy to Kubernetes cluster
-      inputs:
-        actions: deploy
-        namespace: $(Environment.k8sResource.Namespace)
-        secrets: |
-          imagePullSecret1: $(ContainerRegistry.ServiceConnection)
-        manifests: |
-          manifests/*
-        containers: |
-          $(ContainerRegistry.Name)/$(Image.Repository)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@1
+            displayName: Deploy to Kubernetes cluster
+            inputs:
+              actions: deploy
+              namespace: $(Environment.k8sResource.Namespace)
+              secrets: |
+                imagePullSecret1: $(ContainerRegistry.ServiceConnection)
+              manifests: |
+                manifests/*
+              containers: |
+                $(ContainerRegistry.Name)/$(Image.Repository)
