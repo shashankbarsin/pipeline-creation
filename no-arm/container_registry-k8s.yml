@@ -17,7 +17,6 @@ variables:
   # Implicilty generated during pipeline creation flow
   Environment.Name: '{{environmentName}}'
   Environment.k8sResource.Name: '{{k8sResourceName}}'
-  Environment.k8sResource.Namespace: '{{k8sResourceNamespace}}'
 
 stages:
 - stage: Build
@@ -46,12 +45,18 @@ stages:
         deploy:
           steps:
           - task: KubernetesManifest@1
+            displayName: Create secret or force update if it already exists
+            inputs:
+              action: createSecret
+              secretType: dockerRegistry
+              secretName: imagePullSecret1
+              conatinerRegistry: $(ContainerRegistry.ServiceConnection)
+          - task: KubernetesManifest@1
             displayName: Deploy to Kubernetes cluster
             inputs:
-              actions: deploy
-              namespace: $(Environment.k8sResource.Namespace)
+              action: deploy
               secrets: |
-                docker-registry imagePullSecret1 $(ContainerRegistry.ServiceConnection)
+                imagePullSecret1 $(ContainerRegistry.ServiceConnection)
               manifests: |
                 manifests/*
               containers: |
