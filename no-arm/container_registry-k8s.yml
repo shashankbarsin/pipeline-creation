@@ -10,6 +10,8 @@ variables:
   # name of the container registry specified for above service connection
   ContainerRegistry.Name: '{{containerRegistry}}'
   Image.Repository: '$(Build.Repository.Name)'
+  
+  Dockerfile.Path: '{{DockerfilePath}}'
 
   # Based on PORT in Dockerfile. Otherwise default value set
   Container.Port: {{containerPort}}
@@ -30,6 +32,7 @@ stages:
       inputs:
         command: buildAndPush
         repository: $(Image.Repository)
+        Dockerfile: $(Dockerfile.Path)
         containerRegistries: |
           $(ContainerRegistry.ServiceConnection)
 
